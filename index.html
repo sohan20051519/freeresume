@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Resume Architect</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            boxShadow: {
+              'neumorphic-sm': '4px 4px 8px #c7c7c7, -4px -4px 8px #ffffff',
+              'neumorphic-sm-inset': 'inset 4px 4px 8px #c7c7c7, inset -4px -4px 8px #ffffff',
+              'neumorphic': '8px 8px 16px #c7c7c7, -8px -8px 16px #ffffff',
+              'neumorphic-inset': 'inset 8px 8px 16px #c7c7c7, inset -8px -8px 16px #ffffff',
+            },
+            colors: {
+               'brand-primary': '#4f46e5',
+               'brand-secondary': '#7c3aed',
+            }
+          }
+        }
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.1",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.19.0",
+    "jspdf": "https://esm.sh/jspdf@2.5.1",
+    "html2canvas": "https://esm.sh/html2canvas@1.4.1"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
