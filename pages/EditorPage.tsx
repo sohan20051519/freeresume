@@ -58,23 +58,15 @@ const EditorPage: React.FC = () => {
             const pdfWidth = pdf.internal.pageSize.getWidth(); // A4 width in points
             const pdfHeight = pdf.internal.pageSize.getHeight();
             
-            // 4. Calculate the scale factor to fit the entire resume onto one page
-            const scale = Math.min(pdfWidth / sourceWidth, pdfHeight / sourceHeight);
-            
-            // 5. Render to PDF using the library's direct scaling options.
-            // This is the crucial part. We are telling jsPDF/html2canvas:
-            // - To render the DOM element as if it's in a window of `sourceWidth` pixels (`windowWidth`).
-            // - To then draw that rendered image onto the PDF with a final size of 
-            //   `(sourceWidth * scale)` by `(sourceHeight * scale)` points.
-            // FIX: Removed the `height` property from the options object as it's not a valid
-            // property in `HTMLOptions` for `jspdf.html()`. The height is calculated
-            // automatically to preserve the aspect ratio.
+            // 4. Render to PDF, letting jspdf-html handle scaling and pagination.
+            // We instruct html2canvas to render the content at a high resolution (sourceWidth)
+            // and then jsPDF will scale it down to fit the pdfWidth.
             await pdf.html(clone, {
                 x: 0,
                 y: 0,
-                width: sourceWidth * scale,
+                width: pdfWidth,
                 windowWidth: sourceWidth,
-                autoPaging: false, // We've manually scaled to one page, so disable this.
+                autoPaging: 'text',
             });
             
             const finalFileName = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
