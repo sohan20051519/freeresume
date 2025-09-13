@@ -32,13 +32,11 @@ const EditorPage: React.FC = () => {
         // 1. Create a clone to measure and render from. It MUST be in the DOM.
         const clone = source.cloneNode(true) as HTMLElement;
         
-        // Style the clone to be measured off-screen but rendered correctly
+        // Style the clone for off-screen measurement at a fixed, high quality width
         clone.style.position = 'absolute';
-        clone.style.left = '0px';
-        clone.style.top = '-9999px'; // Position it off-screen vertically
-        clone.style.width = '850px'; // A standard, high-quality width for measurement
+        clone.style.left = '-9999px';
+        clone.style.width = '850px'; 
         clone.style.height = 'auto';
-        clone.style.transformOrigin = 'top left'; // Set transform origin for scaling
 
         document.body.appendChild(clone);
 
@@ -46,32 +44,37 @@ const EditorPage: React.FC = () => {
             // Allow browser to calculate layout for accurate measurement.
             await new Promise(resolve => setTimeout(resolve, 50));
 
-            // 2. Measure its natural dimensions
-            const sourceWidth = clone.offsetWidth;
+            // 2. Get the natural dimensions of the high-quality render
+            const sourceWidth = clone.offsetWidth; // Should be ~850
             const sourceHeight = clone.scrollHeight;
             
-            // 3. Set up PDF
+            // 3. Set up the PDF
             const pdf = new jsPDF({
                 orientation: 'portrait',
                 unit: 'pt',
                 format: 'a4',
             });
 
-            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfWidth = pdf.internal.pageSize.getWidth(); // A4 width in points
             const pdfHeight = pdf.internal.pageSize.getHeight();
             
-            // 4. Calculate scale to fit content within the PDF page
+            // 4. Calculate the scale factor to fit the entire resume onto one page
             const scale = Math.min(pdfWidth / sourceWidth, pdfHeight / sourceHeight);
             
-            // 5. Apply the calculated scale transform to the clone itself
-            clone.style.transform = `scale(${scale})`;
-            
-            // 6. Call jsPDF.html() on the PRE-SCALED element. This is the key change.
-            // We are no longer asking jsPDF to do the scaling, which is buggy.
+            // 5. Render to PDF using the library's direct scaling options.
+            // This is the crucial part. We are telling jsPDF/html2canvas:
+            // - To render the DOM element as if it's in a window of `sourceWidth` pixels (`windowWidth`).
+            // - To then draw that rendered image onto the PDF with a final size of 
+            //   `(sourceWidth * scale)` by `(sourceHeight * scale)` points.
+            // FIX: Removed the `height` property from the options object as it's not a valid
+            // property in `HTMLOptions` for `jspdf.html()`. The height is calculated
+            // automatically to preserve the aspect ratio.
             await pdf.html(clone, {
                 x: 0,
                 y: 0,
-                autoPaging: false, // Critically disable the buggy auto-paging
+                width: sourceWidth * scale,
+                windowWidth: sourceWidth,
+                autoPaging: false, // We've manually scaled to one page, so disable this.
             });
             
             const finalFileName = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
@@ -81,7 +84,7 @@ const EditorPage: React.FC = () => {
             console.error("Error generating PDF:", error);
             alert("Sorry, there was an error generating the PDF. Please try again.");
         } finally {
-            // 7. ALWAYS clean up the clone from the DOM
+            // 6. ALWAYS clean up the clone from the DOM
             document.body.removeChild(clone);
             setIsGenerating(false);
         }
