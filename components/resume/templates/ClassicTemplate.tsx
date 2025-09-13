@@ -16,7 +16,7 @@ const ClassicTemplate: React.FC<TemplateProps> = ({ data }) => {
     ].filter(Boolean);
 
     return (
-        <div className="p-8 font-serif bg-white text-gray-800 text-sm">
+        <div className="p-4 font-serif bg-white text-gray-800 text-sm">
             {/* Header */}
             <header className="text-center mb-6">
                 <h1 className="text-3xl font-bold tracking-wider uppercase">{personalInfo.fullName}</h1>
@@ -89,9 +89,9 @@ const ClassicTemplate: React.FC<TemplateProps> = ({ data }) => {
             {/* Skills */}
             <section className="mb-6">
                 <h2 className="text-xl font-bold border-b-2 border-gray-300 pb-1 mb-2 uppercase tracking-widest">Skills</h2>
-                <div className="flex flex-wrap">
+                <div className="flex flex-wrap gap-2">
                     {skills.map(skill => (
-                        <span key={skill.id} className="bg-gray-200 text-gray-700 text-xs font-semibold mr-2 mb-2 px-2.5 py-0.5 rounded-full">{skill.name}</span>
+                        <span key={skill.id} className="bg-gray-200 text-gray-800 text-xs font-medium px-3 py-1 rounded-full">{skill.name}</span>
                     ))}
                 </div>
             </section>

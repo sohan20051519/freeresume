@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useResume } from '../context/ResumeContext';
@@ -22,8 +21,16 @@ const EditorPage: React.FC = () => {
     };
 
     const handleDownload = async () => {
-        if (!resumePreviewRef.current) {
+        const scrollContainer = resumePreviewRef.current;
+        if (!scrollContainer) {
             alert("Resume preview is not available.");
+            return;
+        }
+
+        // The actual content to capture is the first child of the scrollable container.
+        const elementToCapture = scrollContainer.firstChild as HTMLElement;
+        if (!elementToCapture) {
+             alert("Could not find resume content to generate PDF.");
             return;
         }
 
@@ -33,52 +40,40 @@ const EditorPage: React.FC = () => {
         // Allow UI to update before capturing
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        const elementToCapture = resumePreviewRef.current;
-        const originalStyle = elementToCapture.style.cssText;
-
         try {
-            // Temporarily change styles for full content capture
-            elementToCapture.style.height = 'auto';
-            elementToCapture.style.overflow = 'visible';
-
+            // By capturing the inner content element directly, we get its full, unclipped height.
             const canvas = await html2canvas(elementToCapture, {
                 scale: 3, // Higher scale for better quality
                 useCORS: true,
-                // Ensure it captures the full scroll height
-                windowHeight: elementToCapture.scrollHeight,
             });
-
-            // Restore styles immediately after capture
-            elementToCapture.style.cssText = originalStyle;
 
             const imgData = canvas.toDataURL('image/png');
 
             const pdf = new jsPDF({
                 orientation: 'portrait',
                 unit: 'in',
-                format: 'letter'
+                format: 'letter' // Standard US Letter size
             });
 
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
-            
-            const canvasAspectRatio = canvas.height / canvas.width;
-            const totalPdfHeight = pdfWidth * canvasAspectRatio;
+            const canvasAspectRatio = canvas.width / canvas.height;
 
-            let heightLeft = totalPdfHeight;
-            let position = 0;
+            // Calculate the optimal dimensions for the image to fit on the PDF page
+            let imgWidth = pdfWidth;
+            let imgHeight = pdfWidth / canvasAspectRatio;
 
-            // Add the first page
-            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, totalPdfHeight);
-            heightLeft -= pdfHeight;
-
-            // Add more pages if content overflows
-            while (heightLeft > 0) {
-                position -= pdfHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, totalPdfHeight);
-                heightLeft -= pdfHeight;
+            // If the scaled height is taller than the page, we need to constrain by height instead
+            if (imgHeight > pdfHeight) {
+                imgHeight = pdfHeight;
+                imgWidth = pdfHeight * canvasAspectRatio;
             }
+            
+            // Center the image on the page
+            const x = (pdfWidth - imgWidth) / 2;
+            const y = (pdfHeight - imgHeight) / 2;
+
+            pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
             
             const finalFileName = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
             pdf.save(finalFileName);
@@ -87,13 +82,10 @@ const EditorPage: React.FC = () => {
             console.error("Error generating PDF:", error);
             alert("Sorry, there was an error generating the PDF. Please try again.");
         } finally {
-            // Ensure styles are restored even if there's an error
-            if(elementToCapture.style.cssText !== originalStyle){
-               elementToCapture.style.cssText = originalStyle;
-            }
             setIsGenerating(false);
         }
     };
+
 
     const DownloadModal = (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300">
@@ -106,7 +98,7 @@ const EditorPage: React.FC = () => {
                         type="text" 
                         value={fileName}
                         onChange={(e) => setFileName(e.target.value)}
-                        className="w-full p-3 bg-gray-100 rounded-lg shadow-neumorphic-sm-inset focus:outline-none focus:ring-2 focus:ring-brand-primary transition-shadow"
+                        className="w-full p-3 bg-gray-100 text-gray-800 rounded-lg shadow-neumorphic-sm-inset focus:outline-none focus:ring-2 focus:ring-brand-primary transition-shadow"
                     />
                 </div>
                 <div className="flex justify-end gap-4 mt-6">
@@ -140,7 +132,7 @@ const EditorPage: React.FC = () => {
             {isGenerating && GeneratingIndicator}
 
             {/* Left Side: Editor Form */}
-            <div className="w-full md:w-1/2 lg:w-2/5 p-4 md:p-6 lg:p-8 overflow-y-auto" style={{maxHeight: 'calc(100vh - 4rem)'}}>
+            <div className="w-full md:w-1/2 lg:w-2/5 p-4 md:p-6 lg:p-8">
                 <div className="bg-gray-100 rounded-2xl shadow-neumorphic-inset p-6">
                     <EditorForm />
                 </div>
