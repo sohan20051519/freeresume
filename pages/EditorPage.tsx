@@ -4,7 +4,6 @@ import { useResume } from '../context/ResumeContext';
 import EditorForm from '../components/editor/EditorForm';
 import ResumePreview from '../components/resume/ResumePreview';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 const EditorPage: React.FC = () => {
     const { state } = useResume();
@@ -21,59 +20,59 @@ const EditorPage: React.FC = () => {
     };
 
     const handleDownload = async () => {
-        const scrollContainer = resumePreviewRef.current;
-        if (!scrollContainer) {
-            alert("Resume preview is not available.");
-            return;
-        }
-
-        // The actual content to capture is the first child of the scrollable container.
-        const elementToCapture = scrollContainer.firstChild as HTMLElement;
-        if (!elementToCapture) {
-             alert("Could not find resume content to generate PDF.");
+        const source = resumePreviewRef.current?.firstChild as HTMLElement;
+        if (!source) {
+            alert("Could not find resume content to generate PDF.");
             return;
         }
 
         setIsGenerating(true);
         setIsModalOpen(false);
 
-        // Allow UI to update before capturing
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // 1. Create a clone to measure and render from. It MUST be in the DOM.
+        const clone = source.cloneNode(true) as HTMLElement;
+        
+        // Style the clone to be measured off-screen but rendered correctly
+        clone.style.position = 'absolute';
+        clone.style.left = '0px';
+        clone.style.top = '-9999px'; // Position it off-screen vertically
+        clone.style.width = '850px'; // A standard, high-quality width for measurement
+        clone.style.height = 'auto';
+        clone.style.transformOrigin = 'top left'; // Set transform origin for scaling
+
+        document.body.appendChild(clone);
 
         try {
-            // By capturing the inner content element directly, we get its full, unclipped height.
-            const canvas = await html2canvas(elementToCapture, {
-                scale: 3, // Higher scale for better quality
-                useCORS: true,
-            });
+            // Allow browser to calculate layout for accurate measurement.
+            await new Promise(resolve => setTimeout(resolve, 50));
 
-            const imgData = canvas.toDataURL('image/png');
-
+            // 2. Measure its natural dimensions
+            const sourceWidth = clone.offsetWidth;
+            const sourceHeight = clone.scrollHeight;
+            
+            // 3. Set up PDF
             const pdf = new jsPDF({
                 orientation: 'portrait',
-                unit: 'in',
-                format: 'letter' // Standard US Letter size
+                unit: 'pt',
+                format: 'a4',
             });
 
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
-            const canvasAspectRatio = canvas.width / canvas.height;
-
-            // Calculate the optimal dimensions for the image to fit on the PDF page
-            let imgWidth = pdfWidth;
-            let imgHeight = pdfWidth / canvasAspectRatio;
-
-            // If the scaled height is taller than the page, we need to constrain by height instead
-            if (imgHeight > pdfHeight) {
-                imgHeight = pdfHeight;
-                imgWidth = pdfHeight * canvasAspectRatio;
-            }
             
-            // Center the image on the page
-            const x = (pdfWidth - imgWidth) / 2;
-            const y = (pdfHeight - imgHeight) / 2;
-
-            pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+            // 4. Calculate scale to fit content within the PDF page
+            const scale = Math.min(pdfWidth / sourceWidth, pdfHeight / sourceHeight);
+            
+            // 5. Apply the calculated scale transform to the clone itself
+            clone.style.transform = `scale(${scale})`;
+            
+            // 6. Call jsPDF.html() on the PRE-SCALED element. This is the key change.
+            // We are no longer asking jsPDF to do the scaling, which is buggy.
+            await pdf.html(clone, {
+                x: 0,
+                y: 0,
+                autoPaging: false, // Critically disable the buggy auto-paging
+            });
             
             const finalFileName = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
             pdf.save(finalFileName);
@@ -82,6 +81,8 @@ const EditorPage: React.FC = () => {
             console.error("Error generating PDF:", error);
             alert("Sorry, there was an error generating the PDF. Please try again.");
         } finally {
+            // 7. ALWAYS clean up the clone from the DOM
+            document.body.removeChild(clone);
             setIsGenerating(false);
         }
     };
