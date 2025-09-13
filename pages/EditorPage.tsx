@@ -42,7 +42,7 @@ const EditorPage: React.FC = () => {
 
         try {
             // Allow browser to calculate layout for accurate measurement.
-            await new Promise(resolve => setTimeout(resolve, 50));
+            await new Promise(resolve => setTimeout(resolve, 500));
 
             // 2. Get the natural dimensions of the high-quality render
             const sourceWidth = clone.offsetWidth; // Should be ~850
