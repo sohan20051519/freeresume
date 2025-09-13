@@ -29,6 +29,8 @@ const EditorPage: React.FC = () => {
         setIsGenerating(true);
         setIsModalOpen(false);
 
+        window.scrollTo(0, 0);
+
         // 1. Create a clone to measure and render from. It MUST be in the DOM.
         const clone = source.cloneNode(true) as HTMLElement;
         
