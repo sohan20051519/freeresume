@@ -88,7 +88,7 @@ const TechnicalTemplate: React.FC<TemplateProps> = ({ data }) => {
                         <p className="text-sm text-gray-700">{edu.degree}, {edu.location}</p>
                     </div>
                 ))}
-            </section>
+            </Section>
 
              {/* Certifications */}
             {certifications.length > 0 && (
