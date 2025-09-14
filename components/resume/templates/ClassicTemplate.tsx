@@ -16,7 +16,7 @@ const ClassicTemplate: React.FC<TemplateProps> = ({ data }) => {
     ].filter(Boolean);
 
     return (
-        <div className="p-4 font-serif bg-white text-gray-800 text-sm">
+        <div className="h-full bg-white p-8 font-serif text-gray-800 text-sm">
             {/* Header */}
             <header className="text-center mb-6">
                 <h1 className="text-3xl font-bold tracking-wider uppercase">{personalInfo.fullName}</h1>

@@ -5,6 +5,8 @@ import MinimalistTemplate from './components/resume/templates/MinimalistTemplate
 import CreativeTemplate from './components/resume/templates/CreativeTemplate';
 import TechnicalTemplate from './components/resume/templates/TechnicalTemplate';
 import ExecutiveTemplate from './components/resume/templates/ExecutiveTemplate';
+import ProfessionalTemplate from './components/resume/templates/ProfessionalTemplate';
+import CompactTemplate from './components/resume/templates/CompactTemplate';
 
 export const DUMMY_RESUME_DATA: ResumeData = {
   personalInfo: {
@@ -88,6 +90,12 @@ export const TEMPLATES: Template[] = [
         component: ModernTemplate,
         thumbnail: 'https://images.unsplash.com/photo-1598772433939-95330366606a?w=400&h=565&fit=crop&q=80',
     },
+     {
+        id: 'compact',
+        name: 'Compact',
+        component: CompactTemplate,
+        thumbnail: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&h=565&fit=crop&q=80',
+    },
     {
         id: 'minimalist',
         name: 'Simple Minimalist',
@@ -99,6 +107,12 @@ export const TEMPLATES: Template[] = [
         name: 'Creative',
         component: CreativeTemplate,
         thumbnail: 'https://images.unsplash.com/photo-1557835234-197c3365d752?w=400&h=565&fit=crop&q=80',
+    },
+    {
+        id: 'professional',
+        name: 'Professional',
+        component: ProfessionalTemplate,
+        thumbnail: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=565&fit=crop&q=80',
     },
     {
         id: 'technical',

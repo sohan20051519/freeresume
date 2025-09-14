@@ -9,7 +9,7 @@ const ModernTemplate: React.FC<TemplateProps> = ({ data }) => {
     const { personalInfo, summary, experience, education, skills, projects, certifications, languages } = data;
 
     return (
-        <div className="flex font-sans bg-white text-gray-800 text-sm">
+        <div className="h-full flex font-sans bg-white text-gray-800 text-sm">
             {/* Left Column */}
             <aside className="w-1/3 bg-gray-100 p-8 text-gray-700">
                 <div className="text-center mb-10">

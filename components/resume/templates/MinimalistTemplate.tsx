@@ -9,7 +9,7 @@ const MinimalistTemplate: React.FC<TemplateProps> = ({ data }) => {
     const { personalInfo, summary, experience, education, skills, projects, certifications, languages } = data;
 
     return (
-        <div className="p-10 font-sans bg-white text-gray-700 text-sm leading-relaxed">
+        <div className="h-full bg-white p-10 font-sans text-gray-700 text-sm leading-relaxed">
             {/* Header */}
             <header className="mb-10">
                 <h1 className="text-4xl font-light tracking-wider uppercase">{personalInfo.fullName}</h1>

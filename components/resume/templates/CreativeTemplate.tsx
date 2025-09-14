@@ -16,7 +16,7 @@ const CreativeTemplate: React.FC<TemplateProps> = ({ data }) => {
     );
 
     return (
-        <div className="p-8 font-sans bg-white text-gray-800 text-sm">
+        <div className="h-full bg-white p-8 font-sans text-gray-800 text-sm">
             {/* Header */}
             <header className="flex justify-between items-center mb-8 pb-4 border-b-2 border-brand-secondary">
                 <div>

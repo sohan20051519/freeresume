@@ -15,7 +15,7 @@ const ExecutiveTemplate: React.FC<TemplateProps> = ({ data }) => {
     ].filter(Boolean);
 
     return (
-        <div className="p-10 font-serif bg-white text-gray-800 text-base">
+        <div className="h-full bg-white p-10 font-serif text-gray-800 text-base">
             {/* Header */}
             <header className="text-center mb-8">
                 <h1 className="text-4xl font-bold tracking-wider">{personalInfo.fullName}</h1>

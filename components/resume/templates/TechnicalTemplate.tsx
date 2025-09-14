@@ -16,7 +16,7 @@ const TechnicalTemplate: React.FC<TemplateProps> = ({ data }) => {
     );
 
     return (
-        <div className="p-8 font-sans bg-white text-gray-800 text-sm leading-normal">
+        <div className="h-full bg-white p-8 font-sans text-gray-800 text-sm leading-normal">
             {/* Header */}
             <header className="text-center mb-6">
                 <h1 className="text-3xl font-bold">{personalInfo.fullName}</h1>
