@@ -1,10 +1,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { GoogleGenAI, Chat } from '@google/genai';
 import { useNavigate } from 'react-router-dom';
 import { useResume } from '../../context/ResumeContext';
 import { ResumeData } from '../../types';
-import { resumeSchema, generateId } from '../../constants';
+import { resumeSchema } from '../../constants';
+import { getAIService, ChatSession } from '../../services/aiService';
+import { AIError } from '../../services/aiErrors';
+import { processParsedResume } from '../../utils';
 
 interface Message {
     role: 'user' | 'model';
@@ -18,7 +20,7 @@ interface ChatbotModalProps {
 const ChatbotModal: React.FC<ChatbotModalProps> = ({ onClose }) => {
     const { dispatch } = useResume();
     const navigate = useNavigate();
-    const [chat, setChat] = useState<Chat | null>(null);
+    const [chat, setChat] = useState<ChatSession | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -44,22 +46,13 @@ const ChatbotModal: React.FC<ChatbotModalProps> = ({ onClose }) => {
         chatContainerRef.current?.scrollTo(0, chatContainerRef.current.scrollHeight);
     }, [messages, isLoading]);
 
-    const initializeChat = () => {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const chatSession = ai.chats.create({
-            model: 'gemini-2.5-flash',
-            config: { systemInstruction },
-        });
-        setChat(chatSession);
-        return chatSession;
-    };
-
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!input.trim() || isLoading || isFinishing) return;
 
         const userMessage: Message = { role: 'user', text: input };
         setMessages(prev => [...prev, userMessage]);
+        const currentInput = input;
         setInput('');
         setIsLoading(true);
         setError(null);
@@ -67,21 +60,15 @@ const ChatbotModal: React.FC<ChatbotModalProps> = ({ onClose }) => {
         try {
             let currentChat = chat;
             if (!currentChat) {
-                currentChat = initializeChat();
+                const aiService = getAIService();
+                currentChat = aiService.startChat(systemInstruction);
+                setChat(currentChat);
             }
-            const response = await currentChat.sendMessage({ message: input });
-            setMessages(prev => [...prev, { role: 'model', text: response.text }]);
+            const responseText = await currentChat.sendMessage(currentInput);
+            setMessages(prev => [...prev, { role: 'model', text: responseText }]);
         } catch (err) {
             console.error("Error sending message:", err);
-            let errorMessage = "Sorry, I encountered an error. Please check your API key and network connection, then try again.";
-            if (err instanceof Error) {
-                const lowerCaseMessage = err.message.toLowerCase();
-                if (lowerCaseMessage.includes('rate limit') || lowerCaseMessage.includes('quota')) {
-                    errorMessage = "The AI service is currently busy due to high traffic. Please try again in a moment.";
-                } else if (lowerCaseMessage.includes('api key not valid')) {
-                    errorMessage = "AI service authentication failed. Please check the API key configuration.";
-                }
-            }
+            const errorMessage = err instanceof AIError ? err.message : "Sorry, I encountered an error. Please try again.";
             setError(errorMessage);
             setMessages(prev => [...prev, { role: 'model', text: errorMessage }]);
         } finally {
@@ -102,11 +89,13 @@ const ChatbotModal: React.FC<ChatbotModalProps> = ({ onClose }) => {
         try {
             let currentChat = chat;
             if (!currentChat) {
-                 currentChat = initializeChat();
+                const aiService = getAIService();
+                currentChat = aiService.startChat(systemInstruction);
+                setChat(currentChat);
             }
 
-            const response = await currentChat.sendMessage({ message: finishMessage.text });
-            let jsonString = response.text.trim();
+            const responseText = await currentChat.sendMessage(finishMessage.text);
+            let jsonString = responseText.trim();
             
             // Clean the response in case the model wraps it in markdown
             if (jsonString.startsWith('```json')) {
@@ -114,31 +103,14 @@ const ChatbotModal: React.FC<ChatbotModalProps> = ({ onClose }) => {
             }
 
             const parsedJson = JSON.parse(jsonString) as Partial<ResumeData>;
-
-            const processedData: Partial<ResumeData> = {
-                ...parsedJson,
-                experience: parsedJson.experience?.map(e => ({ ...e, id: generateId() })) || [],
-                education: parsedJson.education?.map(e => ({ ...e, id: generateId() })) || [],
-                skills: parsedJson.skills?.map(s => ({ ...s, name: s.name, id: generateId() })) || [],
-                projects: parsedJson.projects?.map(p => ({ ...p, id: generateId() })) || [],
-                certifications: parsedJson.certifications?.map(c => ({ ...c, id: generateId() })) || [],
-                languages: parsedJson.languages?.map(l => ({ ...l, id: generateId() })) || [],
-            };
+            const processedData = processParsedResume(parsedJson);
             
             dispatch({ type: 'SET_RESUME_DATA', payload: processedData as ResumeData });
             navigate('/templates');
 
         } catch (err) {
             console.error("Error finalizing resume:", err);
-            let errorMessage = "The AI failed to create the resume data. You can try asking it to 'generate the JSON now', or close this and build your resume manually.";
-            if (err instanceof Error) {
-                const lowerCaseMessage = err.message.toLowerCase();
-                 if (lowerCaseMessage.includes('rate limit') || lowerCaseMessage.includes('quota')) {
-                    errorMessage = "The AI service is currently busy due to high traffic. Please try again in a moment, or build your resume manually.";
-                } else if (lowerCaseMessage.includes('api key not valid')) {
-                    errorMessage = "AI service authentication failed. Please check the API key configuration.";
-                }
-            }
+            const errorMessage = err instanceof AIError ? err.message : "The AI failed to create the resume data. You can try asking it to 'generate the JSON now', or close this and build your resume manually.";
             setError(errorMessage);
             setIsLoading(false);
             setIsFinishing(false);

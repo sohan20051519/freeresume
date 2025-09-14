@@ -1,11 +1,11 @@
 
 import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GoogleGenAI } from '@google/genai';
 import { useResume } from '../context/ResumeContext';
 import { ResumeData } from '../types';
-import { resumeSchema, generateId } from '../constants';
 import ChatbotModal from '../components/chatbot/ChatbotModal';
+import { getAIService } from '../services/aiService';
+import { AIError } from '../services/aiErrors';
 
 const LandingPage: React.FC = () => {
     const navigate = useNavigate();
@@ -52,8 +52,6 @@ const LandingPage: React.FC = () => {
 
     const parseResumeWithAI = async (file: File) => {
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
             const fileToBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
@@ -67,55 +65,20 @@ const LandingPage: React.FC = () => {
 
             const base64Data = await fileToBase64(file);
 
-            const filePart = {
-                inlineData: {
-                    mimeType: file.type,
-                    data: base64Data,
-                },
-            };
-    
-            const textPart = { text: `Analyze the provided resume. Extract all information and structure it as a JSON object that adheres to the provided schema. If a section is missing (e.g., no projects), provide an empty array. Format dates concisely.` };
-            
-            const systemInstruction = "You are an expert resume parsing AI. Your sole purpose is to accurately extract information from a resume file and convert it into a structured JSON object based on the provided schema. You must handle various resume formats and layouts gracefully. Do not invent information. If a piece of information is not present, omit it or use an empty value as appropriate for the schema.";
-
-            const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: { parts: [filePart, textPart] },
-                config: {
-                    systemInstruction,
-                    responseMimeType: "application/json",
-                    responseSchema: resumeSchema,
-                }
-            });
-
-            const parsedJson = JSON.parse(response.text) as Partial<ResumeData>;
-
-            // Add unique IDs to all array items, which are required by the editor state
-            const processedData: Partial<ResumeData> = {
-                ...parsedJson,
-                experience: parsedJson.experience?.map(e => ({ ...e, id: generateId() })) || [],
-                education: parsedJson.education?.map(e => ({ ...e, id: generateId() })) || [],
-                skills: parsedJson.skills?.map(s => ({ ...s, name: s.name, id: generateId() })) || [],
-                projects: parsedJson.projects?.map(p => ({ ...p, id: generateId() })) || [],
-                certifications: parsedJson.certifications?.map(c => ({ ...c, id: generateId() })) || [],
-                languages: parsedJson.languages?.map(l => ({ ...l, id: generateId() })) || [],
-            };
+            const aiService = getAIService();
+            const filePart = { mimeType: file.type, data: base64Data };
+            const processedData = await aiService.parseResume(filePart);
             
             dispatch({ type: 'SET_RESUME_DATA', payload: processedData as ResumeData });
             navigate('/templates');
 
         } catch (err) {
             console.error("AI Parsing Error:", err);
-            let errorMessage = "The AI failed to parse the resume. The file might be in an unsupported format or corrupted. Please try a different file or build your resume from scratch.";
-            if (err instanceof Error) {
-                const lowerCaseMessage = err.message.toLowerCase();
-                if (lowerCaseMessage.includes('rate limit') || lowerCaseMessage.includes('quota')) {
-                    errorMessage = "The AI service is currently busy due to high traffic. Please try again in a moment.";
-                } else if (lowerCaseMessage.includes('api key not valid')) {
-                    errorMessage = "AI service authentication failed. Please check the API key configuration.";
-                }
+            if (err instanceof AIError) {
+                setError(err.message);
+            } else {
+                setError("The AI failed to parse the resume. The file might be in an unsupported format or corrupted. Please try a different file or build your resume from scratch.");
             }
-            setError(errorMessage);
             stopMessageCarousel();
             setIsParsing(false);
         }

@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
 import { useResume } from '../../context/ResumeContext';
-import { GoogleGenAI } from '@google/genai';
 import { Experience, Education, Project, Certification, Language } from '../../types';
+import { getAIService } from '../../services/aiService';
+import { AIError } from '../../services/aiErrors';
 
 const generateId = () => `id-${new Date().getTime()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -63,25 +64,12 @@ const EditorForm: React.FC = () => {
     const handleAITask = async (taskKey: string, prompt: string, action: (result: string) => void) => {
         setAiIsLoading(prev => ({ ...prev, [taskKey]: true }));
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-            const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: prompt,
-            });
-            action(response.text);
+            const aiService = getAIService();
+            const result = await aiService.generateText(prompt);
+            action(result);
         } catch (error) {
             console.error(`Error with AI task ${taskKey}:`, error);
-            let alertMessage = `Failed to generate content. Please ensure your API key is correctly configured.`;
-            if (error instanceof Error) {
-                const lowerCaseMessage = error.message.toLowerCase();
-                if (lowerCaseMessage.includes('rate limit') || lowerCaseMessage.includes('quota')) {
-                    alertMessage = "The AI service is currently busy due to high traffic. Please try again in a moment.";
-                } else if (lowerCaseMessage.includes('api key not valid')) {
-                    alertMessage = "AI service authentication failed. Please check the API key configuration.";
-                } else {
-                    alertMessage = "An unexpected error occurred with the AI service. Please try again.";
-                }
-            }
+            const alertMessage = error instanceof AIError ? error.message : "An unexpected error occurred. Please try again.";
             alert(alertMessage);
         } finally {
             setAiIsLoading(prev => ({ ...prev, [taskKey]: false }));
