@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useResume } from '../../context/ResumeContext';
 import { GoogleGenAI } from '@google/genai';
@@ -70,7 +71,18 @@ const EditorForm: React.FC = () => {
             action(response.text);
         } catch (error) {
             console.error(`Error with AI task ${taskKey}:`, error);
-            alert(`Failed to generate content. Please ensure your API key is correctly configured.`);
+            let alertMessage = `Failed to generate content. Please ensure your API key is correctly configured.`;
+            if (error instanceof Error) {
+                const lowerCaseMessage = error.message.toLowerCase();
+                if (lowerCaseMessage.includes('rate limit') || lowerCaseMessage.includes('quota')) {
+                    alertMessage = "The AI service is currently busy due to high traffic. Please try again in a moment.";
+                } else if (lowerCaseMessage.includes('api key not valid')) {
+                    alertMessage = "AI service authentication failed. Please check the API key configuration.";
+                } else {
+                    alertMessage = "An unexpected error occurred with the AI service. Please try again.";
+                }
+            }
+            alert(alertMessage);
         } finally {
             setAiIsLoading(prev => ({ ...prev, [taskKey]: false }));
         }

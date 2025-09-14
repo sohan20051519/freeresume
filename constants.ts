@@ -1,4 +1,5 @@
 import { ResumeData, Template } from './types';
+import { Type } from '@google/genai';
 import ClassicTemplate from './components/resume/templates/ClassicTemplate';
 import ModernTemplate from './components/resume/templates/ModernTemplate';
 import MinimalistTemplate from './components/resume/templates/MinimalistTemplate';
@@ -7,6 +8,11 @@ import TechnicalTemplate from './components/resume/templates/TechnicalTemplate';
 import ExecutiveTemplate from './components/resume/templates/ExecutiveTemplate';
 import ProfessionalTemplate from './components/resume/templates/ProfessionalTemplate';
 import CompactTemplate from './components/resume/templates/CompactTemplate';
+import CorporateTemplate from './components/resume/templates/CorporateTemplate';
+import MonacoTemplate from './components/resume/templates/MonacoTemplate';
+import ChronologicalTemplate from './components/resume/templates/ChronologicalTemplate';
+
+export const generateId = () => `id-${new Date().getTime()}-${Math.random().toString(36).substr(2, 9)}`;
 
 export const DUMMY_RESUME_DATA: ResumeData = {
   personalInfo: {
@@ -125,5 +131,109 @@ export const TEMPLATES: Template[] = [
         name: 'Executive',
         component: ExecutiveTemplate,
         thumbnail: 'https://images.unsplash.com/photo-1496115933010-9c97b8b78862?w=400&h=565&fit=crop&q=80',
-    }
+    },
+    {
+        id: 'corporate',
+        name: 'Corporate',
+        component: CorporateTemplate,
+        thumbnail: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=400&h=565&fit=crop&q=80',
+    },
+    {
+        id: 'monaco',
+        name: 'Monaco',
+        component: MonacoTemplate,
+        thumbnail: 'https://images.unsplash.com/photo-1611095790444-1dfa35e37b52?w=400&h=565&fit=crop&q=80',
+    },
+    {
+        id: 'chronological',
+        name: 'Chronological',
+        component: ChronologicalTemplate,
+        thumbnail: 'https://images.unsplash.com/photo-1507925921958-8a62f3d1a50d?w=400&h=565&fit=crop&q=80',
+    },
 ];
+
+// Defines the expected JSON structure for the AI model
+export const resumeSchema = {
+    type: Type.OBJECT,
+    properties: {
+        personalInfo: {
+            type: Type.OBJECT,
+            properties: {
+                fullName: { type: Type.STRING, description: "Full name of the person." },
+                jobTitle: { type: Type.STRING, description: "Most recent or desired job title." },
+                email: { type: Type.STRING, description: "Email address." },
+                phone: { type: Type.STRING, description: "Phone number." },
+                address: { type: Type.STRING, description: "City and State, e.g., 'San Francisco, CA'." },
+                linkedin: { type: Type.STRING, description: "URL of LinkedIn profile." },
+                website: { type: Type.STRING, description: "URL of personal website or portfolio." },
+            },
+        },
+        summary: { type: Type.STRING, description: "The professional summary or objective section." },
+        experience: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    jobTitle: { type: Type.STRING },
+                    company: { type: Type.STRING },
+                    location: { type: Type.STRING },
+                    startDate: { type: Type.STRING },
+                    endDate: { type: Type.STRING },
+                    description: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of responsibilities and achievements as bullet points." },
+                },
+            },
+        },
+        education: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    institution: { type: Type.STRING },
+                    degree: { type: Type.STRING },
+                    location: { type: Type.STRING },
+                    startDate: { type: Type.STRING },
+                    endDate: { type: Type.STRING },
+                },
+            },
+        },
+        skills: {
+            type: Type.ARRAY,
+            description: "List of skills.",
+            items: {
+                type: Type.OBJECT, properties: { name: { type: Type.STRING } }
+            },
+        },
+        projects: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    name: { type: Type.STRING },
+                    link: { type: Type.STRING },
+                    description: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of project details as bullet points." },
+                },
+            },
+        },
+        certifications: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    name: { type: Type.STRING },
+                    organization: { type: Type.STRING },
+                    date: { type: Type.STRING },
+                },
+            },
+        },
+        languages: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    name: { type: Type.STRING },
+                    proficiency: { type: Type.STRING },
+                },
+            },
+        },
+    },
+};

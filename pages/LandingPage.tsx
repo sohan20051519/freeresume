@@ -1,97 +1,11 @@
 
 import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenAI } from '@google/genai';
 import { useResume } from '../context/ResumeContext';
 import { ResumeData } from '../types';
-
-const generateId = () => `id-${new Date().getTime()}-${Math.random().toString(36).substr(2, 9)}`;
-
-// Defines the expected JSON structure for the AI model
-const resumeSchema = {
-    type: Type.OBJECT,
-    properties: {
-        personalInfo: {
-            type: Type.OBJECT,
-            properties: {
-                fullName: { type: Type.STRING, description: "Full name of the person." },
-                jobTitle: { type: Type.STRING, description: "Most recent or desired job title." },
-                email: { type: Type.STRING, description: "Email address." },
-                phone: { type: Type.STRING, description: "Phone number." },
-                address: { type: Type.STRING, description: "City and State, e.g., 'San Francisco, CA'." },
-                linkedin: { type: Type.STRING, description: "URL of LinkedIn profile." },
-                website: { type: Type.STRING, description: "URL of personal website or portfolio." },
-            },
-        },
-        summary: { type: Type.STRING, description: "The professional summary or objective section." },
-        experience: {
-            type: Type.ARRAY,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    jobTitle: { type: Type.STRING },
-                    company: { type: Type.STRING },
-                    location: { type: Type.STRING },
-                    startDate: { type: Type.STRING },
-                    endDate: { type: Type.STRING },
-                    description: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of responsibilities and achievements as bullet points." },
-                },
-            },
-        },
-        education: {
-            type: Type.ARRAY,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    institution: { type: Type.STRING },
-                    degree: { type: Type.STRING },
-                    location: { type: Type.STRING },
-                    startDate: { type: Type.STRING },
-                    endDate: { type: Type.STRING },
-                },
-            },
-        },
-        skills: {
-            type: Type.ARRAY,
-            description: "List of skills.",
-            items: {
-                type: Type.OBJECT, properties: { name: { type: Type.STRING } }
-            },
-        },
-        projects: {
-            type: Type.ARRAY,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    name: { type: Type.STRING },
-                    link: { type: Type.STRING },
-                    description: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of project details as bullet points." },
-                },
-            },
-        },
-        certifications: {
-            type: Type.ARRAY,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    name: { type: Type.STRING },
-                    organization: { type: Type.STRING },
-                    date: { type: Type.STRING },
-                },
-            },
-        },
-        languages: {
-            type: Type.ARRAY,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    name: { type: Type.STRING },
-                    proficiency: { type: Type.STRING },
-                },
-            },
-        },
-    },
-};
+import { resumeSchema, generateId } from '../constants';
+import ChatbotModal from '../components/chatbot/ChatbotModal';
 
 const LandingPage: React.FC = () => {
     const navigate = useNavigate();
@@ -100,6 +14,7 @@ const LandingPage: React.FC = () => {
     const [isParsing, setIsParsing] = useState(false);
     const [parsingMessage, setParsingMessage] = useState<string>('');
     const [error, setError] = useState<string | null>(null);
+    const [isChatOpen, setIsChatOpen] = useState(false);
     const messageIntervalRef = useRef<number | null>(null);
 
     const loadingMessages = [
@@ -187,11 +102,20 @@ const LandingPage: React.FC = () => {
             };
             
             dispatch({ type: 'SET_RESUME_DATA', payload: processedData as ResumeData });
-            navigate('/editor');
+            navigate('/templates');
 
         } catch (err) {
             console.error("AI Parsing Error:", err);
-            setError("The AI failed to parse the resume. The file might be in an unsupported format or corrupted. Please try a different file or build your resume from scratch.");
+            let errorMessage = "The AI failed to parse the resume. The file might be in an unsupported format or corrupted. Please try a different file or build your resume from scratch.";
+            if (err instanceof Error) {
+                const lowerCaseMessage = err.message.toLowerCase();
+                if (lowerCaseMessage.includes('rate limit') || lowerCaseMessage.includes('quota')) {
+                    errorMessage = "The AI service is currently busy due to high traffic. Please try again in a moment.";
+                } else if (lowerCaseMessage.includes('api key not valid')) {
+                    errorMessage = "AI service authentication failed. Please check the API key configuration.";
+                }
+            }
+            setError(errorMessage);
             stopMessageCarousel();
             setIsParsing(false);
         }
@@ -214,6 +138,7 @@ const LandingPage: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gray-100 overflow-hidden">
+            {isChatOpen && <ChatbotModal onClose={() => setIsChatOpen(false)} />}
             {isParsing && (
                 <div className="fixed inset-0 bg-white/70 backdrop-blur-md flex items-center justify-center z-50">
                     <div className="bg-white p-8 rounded-2xl shadow-neumorphic text-center max-w-sm">
@@ -257,26 +182,38 @@ const LandingPage: React.FC = () => {
                             Re-imagine Your Resume with AI
                         </h2>
                         <p className="mt-4 text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
-                            Upload your existing resume for an instant AI-powered redesign, or build a new one from scratch with our intelligent editor.
+                            Upload your existing resume for an instant AI-powered redesign, or build one from scratch with our intelligent editor.
                         </p>
-                        <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4">
-                             <button
-                                onClick={() => fileInputRef.current?.click()}
-                                disabled={isParsing}
-                                className="px-8 py-4 bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-bold rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                Upload & Re-design
-                            </button>
-                            <span className="font-semibold text-gray-500">or</span>
+                        <div className="mt-8 flex flex-col justify-center items-center gap-4">
+                            <div className="flex flex-col sm:flex-row gap-4">
+                                <button
+                                    onClick={() => fileInputRef.current?.click()}
+                                    disabled={isParsing}
+                                    className="px-8 py-4 bg-white text-brand-primary font-bold rounded-full shadow-neumorphic-sm hover:shadow-neumorphic-sm-inset transform hover:scale-105 transition-all duration-300 ease-in-out disabled:opacity-50"
+                                >
+                                    Upload & Re-design
+                                </button>
+                                <button
+                                    onClick={() => navigate('/editor')}
+                                    disabled={isParsing}
+                                    className="px-8 py-4 bg-white text-brand-primary font-bold rounded-full shadow-neumorphic-sm hover:shadow-neumorphic-sm-inset transform hover:scale-105 transition-all duration-300 ease-in-out disabled:opacity-50"
+                                >
+                                    Build From Scratch
+                                </button>
+                            </div>
+                            <span className="font-semibold text-gray-500 my-2">or</span>
                             <button
-                                onClick={() => navigate('/templates')}
+                                onClick={() => setIsChatOpen(true)}
                                 disabled={isParsing}
-                                className="px-8 py-4 bg-white text-brand-primary font-bold rounded-full shadow-neumorphic-sm hover:shadow-neumorphic-sm-inset transform hover:scale-105 transition-all duration-300 ease-in-out disabled:opacity-50"
+                                className="w-full sm:w-auto flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-bold rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                Build From Scratch
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.839 8.839 0 01-4.082-.973l-1.453.968a1 1 0 01-1.343-1.343l.968-1.453A8.839 8.839 0 012 10c0-4.418 4.418-8 10-8s8 3.582 8 8zm-4.146-2.146a.5.5 0 00-.708-.708L10 10.293 7.854 8.146a.5.5 0 10-.708.708L9.293 11l-2.147 2.146a.5.5 0 00.708.708L10 11.707l2.146 2.147a.5.5 0 00.708-.708L10.707 11l2.147-2.146z" clipRule="evenodd" />
+                                </svg>
+                                <span>Create with AI Chat</span>
                             </button>
                         </div>
-                         <p className="text-xs text-gray-500 mt-3">Supports PDF, DOCX, TXT, and MD files</p>
+                         <p className="text-xs text-gray-500 mt-3">Supports PDF, DOCX, TXT, and MD files for upload</p>
                     </div>
                 </main>
 
