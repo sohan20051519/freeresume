@@ -68,7 +68,7 @@ const ChatbotModal: React.FC<ChatbotModalProps> = ({ onClose }) => {
             setMessages(prev => [...prev, { role: 'model', text: responseText }]);
         } catch (err) {
             console.error("Error sending message:", err);
-            const errorMessage = err instanceof AIError ? err.message : "Sorry, I encountered an error. Please try again.";
+            const errorMessage = err instanceof AIError ? err.message : "Sorry, the AI service is currently unavailable. Please try again later.";
             setError(errorMessage);
             setMessages(prev => [...prev, { role: 'model', text: errorMessage }]);
         } finally {

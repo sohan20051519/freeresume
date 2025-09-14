@@ -1,3 +1,4 @@
+
 import { AIService, FilePart, ChatSession } from './aiService';
 import { ResumeData } from '../types';
 import { resumeSchema } from '../constants';
@@ -34,19 +35,23 @@ class OpenAIChatSession implements ChatSession {
 }
 
 export class OpenAIService implements AIService {
-    // This is insecure and not recommended for production.
-    // API keys should be stored in a secure, server-side environment.
-    private apiKey = "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";
+    private apiKey: string;
     private baseUrl = "https://openrouter.ai/api/v1";
-    private headers = {
-        "Authorization": `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://free-resumeme.vercel.app/",
-        "X-Title": "freeresume",
-    };
+    private headers: Record<string, string>;
+
+    constructor(apiKey: string) {
+        this.apiKey = apiKey;
+        this.headers = {
+            "Authorization": `Bearer ${this.apiKey}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://free-resumeme.vercel.app/",
+            "X-Title": "freeresume",
+        };
+    }
 
     private async handleError(response: Response): Promise<never> {
         if (response.status === 401) {
+            localStorage.removeItem('openRouterApiKey');
             throw new InvalidApiKeyError();
         } else if (response.status === 429) {
             throw new RateLimitError();

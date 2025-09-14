@@ -10,6 +10,7 @@ import CompactTemplate from './components/resume/templates/CompactTemplate';
 import CorporateTemplate from './components/resume/templates/CorporateTemplate';
 import MonacoTemplate from './components/resume/templates/MonacoTemplate';
 import ChronologicalTemplate from './components/resume/templates/ChronologicalTemplate';
+import { Type } from '@google/genai';
 
 export const generateId = () => `id-${new Date().getTime()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -153,84 +154,84 @@ export const TEMPLATES: Template[] = [
 
 // Defines the expected JSON structure for the AI model
 export const resumeSchema = {
-    type: "object",
+    type: Type.OBJECT,
     properties: {
         personalInfo: {
-            type: "object",
+            type: Type.OBJECT,
             properties: {
-                fullName: { type: "string", description: "Full name of the person." },
-                jobTitle: { type: "string", description: "Most recent or desired job title." },
-                email: { type: "string", description: "Email address." },
-                phone: { type: "string", description: "Phone number." },
-                address: { type: "string", description: "City and State, e.g., 'San Francisco, CA'." },
-                linkedin: { type: "string", description: "URL of LinkedIn profile." },
-                website: { type: "string", description: "URL of personal website or portfolio." },
+                fullName: { type: Type.STRING, description: "Full name of the person." },
+                jobTitle: { type: Type.STRING, description: "Most recent or desired job title." },
+                email: { type: Type.STRING, description: "Email address." },
+                phone: { type: Type.STRING, description: "Phone number." },
+                address: { type: Type.STRING, description: "City and State, e.g., 'San Francisco, CA'." },
+                linkedin: { type: Type.STRING, description: "URL of LinkedIn profile." },
+                website: { type: Type.STRING, description: "URL of personal website or portfolio." },
             },
         },
-        summary: { type: "string", description: "The professional summary or objective section." },
+        summary: { type: Type.STRING, description: "The professional summary or objective section." },
         experience: {
-            type: "array",
+            type: Type.ARRAY,
             items: {
-                type: "object",
+                type: Type.OBJECT,
                 properties: {
-                    jobTitle: { type: "string" },
-                    company: { type: "string" },
-                    location: { type: "string" },
-                    startDate: { type: "string" },
-                    endDate: { type: "string" },
-                    description: { type: "array", items: { type: "string" }, description: "List of responsibilities and achievements as bullet points." },
+                    jobTitle: { type: Type.STRING },
+                    company: { type: Type.STRING },
+                    location: { type: Type.STRING },
+                    startDate: { type: Type.STRING },
+                    endDate: { type: Type.STRING },
+                    description: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of responsibilities and achievements as bullet points." },
                 },
             },
         },
         education: {
-            type: "array",
+            type: Type.ARRAY,
             items: {
-                type: "object",
+                type: Type.OBJECT,
                 properties: {
-                    institution: { type: "string" },
-                    degree: { type: "string" },
-                    location: { type: "string" },
-                    startDate: { type: "string" },
-                    endDate: { type: "string" },
+                    institution: { type: Type.STRING },
+                    degree: { type: Type.STRING },
+                    location: { type: Type.STRING },
+                    startDate: { type: Type.STRING },
+                    endDate: { type: Type.STRING },
                 },
             },
         },
         skills: {
-            type: "array",
+            type: Type.ARRAY,
             description: "List of skills.",
             items: {
-                type: "object", properties: { name: { type: "string" } }
+                type: Type.OBJECT, properties: { name: { type: Type.STRING } }
             },
         },
         projects: {
-            type: "array",
+            type: Type.ARRAY,
             items: {
-                type: "object",
+                type: Type.OBJECT,
                 properties: {
-                    name: { type: "string" },
-                    link: { type: "string" },
-                    description: { type: "array", items: { type: "string" }, description: "List of project details as bullet points." },
+                    name: { type: Type.STRING },
+                    link: { type: Type.STRING },
+                    description: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of project details as bullet points." },
                 },
             },
         },
         certifications: {
-            type: "array",
+            type: Type.ARRAY,
             items: {
-                type: "object",
+                type: Type.OBJECT,
                 properties: {
-                    name: { type: "string" },
-                    organization: { type: "string" },
-                    date: { type: "string" },
+                    name: { type: Type.STRING },
+                    organization: { type: Type.STRING },
+                    date: { type: Type.STRING },
                 },
             },
         },
         languages: {
-            type: "array",
+            type: Type.ARRAY,
             items: {
-                type: "object",
+                type: Type.OBJECT,
                 properties: {
-                    name: { type: "string" },
-                    proficiency: { type: "string" },
+                    name: { type: Type.STRING },
+                    proficiency: { type: Type.STRING },
                 },
             },
         },

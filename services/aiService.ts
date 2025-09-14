@@ -1,6 +1,6 @@
+
 import { ResumeData } from '../types';
-import { OpenAIService } from './openAIService';
-import { AIError, GenericAIError } from './aiErrors';
+import { GeminiService } from './geminiService';
 
 export interface FilePart {
     mimeType: string;
@@ -22,13 +22,11 @@ export interface AIService {
     startChat(systemInstruction: string): ChatSession;
 }
 
-let aiServiceInstance: AIService | null = null;
-
+/**
+ * AI Service Factory.
+ * This function exclusively returns an instance of GeminiService to interact with the Google Gemini API.
+ * The API key is now handled internally via environment variables within the GeminiService.
+ */
 export const getAIService = (): AIService => {
-    if (!aiServiceInstance) {
-        // As requested, directly using the OpenAI service with a hardcoded key.
-        // This is not secure and not recommended for production environments.
-        aiServiceInstance = new OpenAIService();
-    }
-    return aiServiceInstance;
+    return new GeminiService();
 };

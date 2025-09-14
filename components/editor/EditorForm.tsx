@@ -69,7 +69,7 @@ const EditorForm: React.FC = () => {
             action(result);
         } catch (error) {
             console.error(`Error with AI task ${taskKey}:`, error);
-            const alertMessage = error instanceof AIError ? error.message : "An unexpected error occurred. Please try again.";
+            const alertMessage = error instanceof AIError ? error.message : "The AI service is currently unavailable. Please try again later.";
             alert(alertMessage);
         } finally {
             setAiIsLoading(prev => ({ ...prev, [taskKey]: false }));

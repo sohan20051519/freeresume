@@ -75,9 +75,9 @@ const LandingPage: React.FC = () => {
         } catch (err) {
             console.error("AI Parsing Error:", err);
             if (err instanceof AIError) {
-                setError(err.message);
+                 setError(err.message);
             } else {
-                setError("The AI failed to parse the resume. The file might be in an unsupported format or corrupted. Please try a different file or build your resume from scratch.");
+                setError("The AI service is currently unavailable. Please try again later or build your resume from scratch.");
             }
             stopMessageCarousel();
             setIsParsing(false);

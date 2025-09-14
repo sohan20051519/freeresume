@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Chat as GeminiChat } from '@google/genai';
 import { AIService, FilePart, ChatSession } from './aiService';
 import { ResumeData } from '../types';
@@ -37,8 +38,9 @@ class GeminiChatSession implements ChatSession {
 export class GeminiService implements AIService {
     private ai: GoogleGenAI;
 
-    constructor(apiKey: string) {
-        this.ai = new GoogleGenAI({ apiKey });
+    constructor() {
+        // API key is now handled by the execution environment.
+        this.ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     }
 
     private handleError(err: unknown): never {
@@ -47,6 +49,7 @@ export class GeminiService implements AIService {
             if (lowerCaseMessage.includes('rate limit') || lowerCaseMessage.includes('quota')) {
                 throw new RateLimitError();
             } else if (lowerCaseMessage.includes('api key not valid')) {
+                // This now indicates a server-side configuration error.
                 throw new InvalidApiKeyError();
             }
         }
