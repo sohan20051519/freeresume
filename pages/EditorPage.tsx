@@ -3,23 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useResume } from '../context/ResumeContext';
 import EditorForm from '../components/editor/EditorForm';
 import ResumePreview from '../components/resume/ResumePreview';
-import jsPDF from 'jspdf';
 
 const EditorPage: React.FC = () => {
-    const { state } = useResume();
     const navigate = useNavigate();
     const resumePreviewRef = useRef<HTMLDivElement>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [fileName, setFileName] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
 
-    const openDownloadModal = () => {
-        const defaultName = `Resume-${state.data.personalInfo.fullName.replace(/\s+/g, '_')}.pdf`;
-        setFileName(defaultName);
-        setIsModalOpen(true);
-    };
-
-    const handleDownload = async () => {
+    const handleDownload = () => {
         const source = resumePreviewRef.current?.firstChild as HTMLElement;
         if (!source) {
             alert("Could not find resume content to generate PDF.");
@@ -27,104 +17,86 @@ const EditorPage: React.FC = () => {
         }
 
         setIsGenerating(true);
-        setIsModalOpen(false);
 
-        // 1. Create a clone to measure and render from. It MUST be in the DOM.
-        const clone = source.cloneNode(true) as HTMLElement;
-        
-        // Style the clone for off-screen measurement at a fixed, high quality width
-        clone.style.position = 'absolute';
-        clone.style.left = '-9999px';
-        clone.style.width = '850px'; 
-        clone.style.height = 'auto';
+        // Get all style and link tags from the main document's head
+        const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+            .map(el => el.outerHTML)
+            .join('');
 
-        document.body.appendChild(clone);
+        const printHtml = `
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <title>Your Resume</title>
+                    ${styles}
+                    <style>
+                        @page {
+                            size: A4;
+                            margin: 0;
+                        }
+                        body {
+                            margin: 0;
+                            -webkit-print-color-adjust: exact !important;
+                            print-color-adjust: exact !important;
+                            
+                            /* Apply scaling directly to the body */
+                            width: 850px;
+                            height: 1100px;
+                            transform-origin: top left;
+                            transform: scale(calc(210mm / 850px));
+                            overflow: hidden;
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${source.outerHTML}
+                    <script>
+                        window.addEventListener('load', () => {
+                            // A delay ensures all remote resources like fonts are loaded and rendered
+                            setTimeout(() => {
+                                window.focus();
+                                window.print();
+                                window.close();
+                            }, 500); 
+                        });
+                    </script>
+                </body>
+            </html>
+        `;
 
-        try {
-            // Allow browser to calculate layout for accurate measurement.
-            await new Promise(resolve => setTimeout(resolve, 50));
-
-            // 2. Get the natural dimensions of the high-quality render
-            const sourceWidth = clone.offsetWidth; // Should be ~850
-            const sourceHeight = clone.scrollHeight;
-            
-            // 3. Set up the PDF
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'pt',
-                format: 'a4',
-            });
-
-            const pdfWidth = pdf.internal.pageSize.getWidth(); // A4 width in points
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            
-            // 4. Render to PDF, letting jspdf-html handle scaling and pagination.
-            // We instruct html2canvas to render the content at a high resolution (sourceWidth)
-            // and then jsPDF will scale it down to fit the pdfWidth.
-            await pdf.html(clone, {
-                x: 0,
-                y: 0,
-                width: pdfWidth,
-                windowWidth: sourceWidth,
-                autoPaging: 'text',
-            });
-            
-            const finalFileName = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
-            pdf.save(finalFileName);
-
-        } catch (error) {
-            console.error("Error generating PDF:", error);
-            alert("Sorry, there was an error generating the PDF. Please try again.");
-        } finally {
-            // 6. ALWAYS clean up the clone from the DOM
-            document.body.removeChild(clone);
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
             setIsGenerating(false);
+            alert('Could not open a new window. Please disable your pop-up blocker and try again.');
+            return;
         }
+
+        printWindow.document.open();
+        printWindow.document.write(printHtml);
+        printWindow.document.close();
+
+        // Reset the loading state after a delay, as we can't get a direct callback
+        // from the print dialog in the other window.
+        setTimeout(() => {
+            setIsGenerating(false);
+        }, 3000);
     };
 
-
-    const DownloadModal = (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300">
-            <div className="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md m-4">
-                <h3 className="text-xl font-semibold mb-4 text-gray-800">Download Resume</h3>
-                <div>
-                    <label htmlFor="filename" className="block text-sm font-medium text-gray-600 mb-1">Filename</label>
-                    <input 
-                        id="filename"
-                        type="text" 
-                        value={fileName}
-                        onChange={(e) => setFileName(e.target.value)}
-                        className="w-full p-3 bg-gray-100 text-gray-800 rounded-lg shadow-neumorphic-sm-inset focus:outline-none focus:ring-2 focus:ring-brand-primary transition-shadow"
-                    />
-                </div>
-                <div className="flex justify-end gap-4 mt-6">
-                    <button onClick={() => setIsModalOpen(false)} className="px-5 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg shadow-neumorphic-sm hover:shadow-neumorphic-sm-inset transition-all duration-200">
-                        Cancel
-                    </button>
-                    <button onClick={handleDownload} disabled={isGenerating} className="px-5 py-2 bg-brand-primary text-white font-semibold rounded-lg shadow-md hover:bg-brand-secondary disabled:bg-gray-400 transition-all duration-200">
-                        {isGenerating ? 'Generating...' : 'Download'}
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-    
     const GeneratingIndicator = (
          <div className="fixed inset-0 bg-white/70 backdrop-blur-md flex items-center justify-center z-50">
             <div className="bg-white p-8 rounded-2xl shadow-neumorphic text-center max-w-sm">
-                <svg className="animate-spin h-10 w-10 text-brand-primary mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin h-10 w-10 text-brand-primary mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="http://www.w3.org/2000/svg">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <h3 className="text-xl font-semibold text-gray-800">Generating your PDF...</h3>
-                <p className="text-gray-600 mt-2 text-sm">This might take a moment.</p>
+                <h3 className="text-xl font-semibold text-gray-800">Preparing your PDF...</h3>
+                <p className="text-gray-600 mt-2 text-sm">A new tab will open. Please use the "Save as PDF" option in the print dialog.</p>
             </div>
         </div>
     );
 
     return (
         <div className="flex flex-col md:flex-row min-h-screen bg-gray-200">
-            {isModalOpen && DownloadModal}
             {isGenerating && GeneratingIndicator}
 
             {/* Left Side: Editor Form */}
@@ -149,7 +121,7 @@ const EditorPage: React.FC = () => {
                             <span>Change Template</span>
                         </button>
                         <button
-                            onClick={openDownloadModal}
+                            onClick={handleDownload}
                             disabled={isGenerating}
                             className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-bold rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
                         >
